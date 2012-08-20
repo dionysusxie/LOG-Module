@@ -41,7 +41,7 @@ private:
 
 	static std::string trimString(const std::string& str);
 
-	std::map<std::string, std::string> m_values;
+	std::map<std::string, std::string> values_;
 };
 
 #endif /* LOG_CONFIG_H_ */

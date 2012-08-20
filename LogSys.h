@@ -31,8 +31,8 @@ private:
     LogSys(const std::string& config_file) throw (std::runtime_error);
 
     // non-static:
-    LogConfig m_Config;
-    boost::shared_ptr<Logger> m_pLogger;
+    LogConfig config_;
+    boost::shared_ptr<Logger> logger_;
 };
 
 #endif /* LOGSYS_H_ */

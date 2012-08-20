@@ -39,9 +39,9 @@ protected:
 
     virtual bool logImpl(const std::string& msg) = 0;
 
-    ENUM_LOG_LEVEL m_Level;
-    unsigned long m_MaxFlushNum;
-    unsigned long m_NotFlushedNum;
+    ENUM_LOG_LEVEL level_;
+    unsigned long max_flush_num_;
+    unsigned long not_flushed_num_;
 };
 
 
@@ -76,13 +76,13 @@ private:
     const FileLogger& operator=(const FileLogger& rhs);
     bool writeLog(const std::string& msg);
 
-    std::string m_FilePath;
-    std::string m_FileBaseName;
-    std::string m_FileSuffix;
+    std::string file_path_;
+    std::string file_base_name_;
+    std::string file_suffix_;
 
-    std::fstream m_File;
+    std::fstream file_;
 
-    const bool m_IsThreadSafe;
+    const bool is_thread_safe_;
     boost::mutex mutex_;
 };
 
@@ -131,17 +131,17 @@ private:
     void getCurrentDate(struct tm& date);
     std::string getFileNameByDate(const struct tm& date);
 
-    std::string m_FilePath;
-    std::string m_FileBaseName;
-    std::string m_FileSuffix;
+    std::string file_path_;
+    std::string file_base_name_;
+    std::string file_suffix_;
 
     // Rolling file logger uses a "file logger" to write log
-    boost::shared_ptr<FileLogger> m_pFileLogger;
+    boost::shared_ptr<FileLogger> file_logger_;
 
     // the mutex
     boost::mutex mutex_;
 
-    struct tm m_LastCreatedTime;
+    struct tm last_created_time_;
 };
 
 #endif /* LOGGER_H_ */
