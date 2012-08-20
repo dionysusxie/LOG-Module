@@ -2,4 +2,6 @@
 *.a
 *.so
 output/log.h
+.cproject
+.project
 
