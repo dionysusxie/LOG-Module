@@ -39,9 +39,8 @@ boost::shared_ptr<Logger> Logger::createLoggerInterface(ENUM_LOG_TYPE type) thro
 
 // constructor
 Logger::Logger():
-    level_(LOG_DEFAULT_LOGLEVEL),
-    max_flush_num_(LOG_DEFAULT_FLUSH_NUM),
     not_flushed_num_(0) {
+    setDefault();
 }
 
 Logger::Logger(ENUM_LOG_LEVEL level, unsigned long flush_num):
@@ -52,9 +51,19 @@ Logger::Logger(ENUM_LOG_LEVEL level, unsigned long flush_num):
 
 // destructor
 Logger::~Logger() {
+
 }
 
+void Logger::setDefault() {
+    level_ = LOG_DEFAULT_LOGLEVEL;
+    max_flush_num_ = LOG_DEFAULT_FLUSH_NUM;
+}
+
+// get the config values of all items;
+// the default value will be used if not given
 bool Logger::config(const LogConfig& conf) {
+    setDefault();
+
 
     //
     // get log level
@@ -85,7 +94,8 @@ bool Logger::config(const LogConfig& conf) {
     }
     LOG_TO_STDERR("num_logs_to_flush: %lu", max_flush_num_);
 
-    return true;
+
+    return configImpl(conf);
 }
 
 bool Logger::log(const std::string& msg, ENUM_LOG_LEVEL level) {
@@ -115,11 +125,8 @@ void Logger::setLevel(ENUM_LOG_LEVEL level) {
 //
 
 FileLogger::FileLogger():   // set the default value
-    Logger(),
-    file_path_(LOG_DEFAULT_FILE_PATH),
-    file_base_name_(LOG_DEFAULT_FILE_BASENAME),
-    file_suffix_(LOG_DEFAULT_FILE_SUFFIX),
     is_thread_safe_(true) {
+    setDefault();
 }
 
 FileLogger::FileLogger(const string& path,
@@ -140,14 +147,17 @@ FileLogger::~FileLogger() {
     LOG_TO_STDERR("~FileLogger()");
 }
 
-bool FileLogger::config(const LogConfig& conf) {
-    if (!Logger::config(conf))
-        return false;
+void FileLogger::setDefault() {
+    file_path_ = LOG_DEFAULT_FILE_PATH;
+    file_base_name_ = LOG_DEFAULT_FILE_BASENAME;
+    file_suffix_ = LOG_DEFAULT_FILE_SUFFIX;
+}
 
+bool FileLogger::configImpl(const LogConfig& conf) {
+    setDefault();
     conf.getString(TEXT_LOG_FILE_PATH,      file_path_);
     conf.getString(TEXT_LOG_FILE_BASE_NAME, file_base_name_);
     conf.getString(TEXT_LOG_FILE_SUFFIX,    file_suffix_);
-
     return true;
 }
 
@@ -264,8 +274,8 @@ StdErrLogger::~StdErrLogger() {
     close();
 }
 
-bool StdErrLogger::config(const LogConfig& conf) {
-    return Logger::config(conf);
+bool StdErrLogger::configImpl(const LogConfig& conf) {
+    return true;
 }
 
 bool StdErrLogger::open() {
@@ -286,11 +296,8 @@ bool StdErrLogger::logImpl(const std::string& msg) {
 // calss RollingFileLogger
 //
 
-RollingFileLogger::RollingFileLogger():
-    Logger(),
-    file_path_(LOG_DEFAULT_FILE_PATH),
-    file_base_name_(LOG_DEFAULT_FILE_BASENAME),
-    file_suffix_(LOG_DEFAULT_FILE_SUFFIX) {
+RollingFileLogger::RollingFileLogger() {
+    setDefault();
 }
 
 RollingFileLogger::~RollingFileLogger() {
@@ -298,14 +305,17 @@ RollingFileLogger::~RollingFileLogger() {
     LOG_TO_STDERR("~RollingFileLogger()");
 }
 
-bool RollingFileLogger::config(const LogConfig& conf) {
-    if (! Logger::config(conf))
-        return false;
+void RollingFileLogger::setDefault() {
+    file_path_ = LOG_DEFAULT_FILE_PATH;
+    file_base_name_ = LOG_DEFAULT_FILE_BASENAME;
+    file_suffix_ = LOG_DEFAULT_FILE_SUFFIX;
+}
 
+bool RollingFileLogger::configImpl(const LogConfig& conf) {
+    setDefault();
     conf.getString(TEXT_LOG_FILE_PATH,      file_path_);
     conf.getString(TEXT_LOG_FILE_BASE_NAME, file_base_name_);
     conf.getString(TEXT_LOG_FILE_SUFFIX,    file_suffix_);
-
     return true;
 }
 

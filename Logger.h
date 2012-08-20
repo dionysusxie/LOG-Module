@@ -22,26 +22,29 @@ public:
     static boost::shared_ptr<Logger> createLoggerInterface(ENUM_LOG_TYPE type)
         throw (std::runtime_error);
 
-    virtual ~Logger();
-
-    virtual bool config(const LogConfig& conf);
-    virtual bool open() = 0;
-    virtual bool close() = 0;
-
+    bool config(const LogConfig& conf);
     bool log(const std::string& msg, ENUM_LOG_LEVEL level);
     ENUM_LOG_LEVEL getLevel() const;
     void setLevel(ENUM_LOG_LEVEL level);
+
+    virtual ~Logger();
+    virtual bool open() = 0;
+    virtual bool close() = 0;
 
 protected:
     // constructors
     Logger();
     Logger(ENUM_LOG_LEVEL level, unsigned long flush_num);
 
+    virtual bool configImpl(const LogConfig& conf) = 0;
     virtual bool logImpl(const std::string& msg) = 0;
 
     ENUM_LOG_LEVEL level_;
     unsigned long max_flush_num_;
     unsigned long not_flushed_num_;
+
+private:
+    void setDefault();
 };
 
 
@@ -59,27 +62,31 @@ public:
             const std::string& suffix,
             ENUM_LOG_LEVEL level,
             unsigned long flush_num,
-            bool thread_safe );
+            bool thread_safe);
 
     virtual ~FileLogger();
-
-    virtual bool config(const LogConfig& conf);
     virtual bool open();
     virtual bool close();
 
 protected:
+    virtual bool configImpl(const LogConfig& conf);
     virtual bool logImpl(const std::string& msg);
+
     std::string getFullFileName() const;
 
 private:
+    // disabled methods
     FileLogger(const FileLogger& rhs);
     const FileLogger& operator=(const FileLogger& rhs);
-    bool writeLog(const std::string& msg);
 
+private:
+    bool writeLog(const std::string& msg);
+    void setDefault();
+
+private:
     std::string file_path_;
     std::string file_base_name_;
     std::string file_suffix_;
-
     std::fstream file_;
 
     const bool is_thread_safe_;
@@ -95,11 +102,11 @@ public:
     StdErrLogger();
     virtual ~StdErrLogger();
 
-    virtual bool config(const LogConfig& conf);
     virtual bool open();
     virtual bool close();
 
 protected:
+    virtual bool configImpl(const LogConfig& conf);
     virtual bool logImpl(const std::string& msg);
 
 private:
@@ -116,21 +123,25 @@ public:
     RollingFileLogger();
     virtual ~RollingFileLogger();
 
-    virtual bool config(const LogConfig& conf);
     virtual bool open();
     virtual bool close();
 
 protected:
+    virtual bool configImpl(const LogConfig& conf);
     virtual bool logImpl(const std::string& msg);
-    void rotateFile();
 
 private:
+    // disabled methods
     RollingFileLogger(const RollingFileLogger& rhs);
     const RollingFileLogger& operator=(const RollingFileLogger& rhs);
 
+private:
+    void rotateFile();
     void getCurrentDate(struct tm& date);
+    void setDefault();
     std::string getFileNameByDate(const struct tm& date);
 
+private:
     std::string file_path_;
     std::string file_base_name_;
     std::string file_suffix_;

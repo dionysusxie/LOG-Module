@@ -56,7 +56,7 @@ LogSys::LogSys(const string& config_file) throw (runtime_error) {
     config_.getUnsigned(TEXT_LOG_DESTINATION, dest);
 
     logger_ = Logger::createLoggerInterface( ENUM_LOG_TYPE(dest) );
-    if(NULL == logger_) {
+    if (NULL == logger_) {
         runtime_error ex("Failed to create the logger interface!");
         throw ex;
     }
@@ -81,11 +81,13 @@ LogSys::~LogSys() {
 }
 
 void LogSys::log(const string& msg, ENUM_LOG_LEVEL level) {
-    if(logger_)
+    if(logger_) {
         logger_->log(msg, level);
+    }
 }
 
 void LogSys::setLevel(ENUM_LOG_LEVEL level) {
-    if(logger_)
+    if(logger_) {
         logger_->setLevel(level);
+    }
 }
