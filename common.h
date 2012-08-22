@@ -2,6 +2,8 @@
 #define COMMON_H_
 
 #include <string>
+#include <assert.h>
+#include <iostream>
 #include "log.h"
 
 
@@ -41,8 +43,18 @@ const   ENUM_LOG_LEVEL  LOG_DEFAULT_LOGLEVEL = LOG_LEVEL_INFO;
     dbgtime[24] = '\0';                                                 \
                                                                         \
     std::string format("[%s] [LOG SYS] ");                              \
-    format.append(format_string).append("\n");                          \
+    format.append(format_string);                                       \
     fprintf(stderr, format.c_str(), dbgtime, ##__VA_ARGS__);            \
+    std::cerr << std::endl;                                             \
+}
+
+
+#define Assert(expr, msg)\
+{\
+    if (!(expr)) {\
+        LOG_TO_STDERR(msg);\
+        assert(false);\
+    }\
 }
 
 #endif

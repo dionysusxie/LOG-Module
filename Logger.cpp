@@ -39,22 +39,30 @@ boost::shared_ptr<Logger> Logger::createLoggerInterface(ENUM_LOG_TYPE type) thro
 
 // constructor
 Logger::Logger():
-    not_flushed_num_(0) {
-    setDefault();
+    not_flushed_num_(0),
+    status_(CREATED) {
+    setDefaultConf();
 }
 
 Logger::Logger(ENUM_LOG_LEVEL level, unsigned long flush_num):
     level_(level),
     max_flush_num_(flush_num),
-    not_flushed_num_(0) {
+    not_flushed_num_(0),
+    status_(CREATED) {
 }
 
 // destructor
 Logger::~Logger() {
+    // Don't call close() here!!!
+    // close();
 
+    // JUST free the resources allocated in this Logger class!
+    // ...
+
+    LOG_TO_STDERR("~Logger()");
 }
 
-void Logger::setDefault() {
+void Logger::setDefaultConf() {
     level_ = LOG_DEFAULT_LOGLEVEL;
     max_flush_num_ = LOG_DEFAULT_FLUSH_NUM;
 }
@@ -62,7 +70,14 @@ void Logger::setDefault() {
 // get the config values of all items;
 // the default value will be used if not given
 bool Logger::config(const LogConfig& conf) {
-    setDefault();
+    lock_guard<mutex> write_lock(mutex_);
+
+    if (OPENED == status_) {
+        Assert(false, "You can't config a logger when it's already opened!");
+        return false;
+    }
+
+    setDefaultConf();
 
 
     //
@@ -76,7 +91,7 @@ bool Logger::config(const LogConfig& conf) {
             level_ = static_cast<ENUM_LOG_LEVEL>(num);
         }
         else {
-            LOG_TO_STDERR("Log level out of range!");
+            Assert(false, "Log level out of range!");
             return false;
         }
     }
@@ -90,7 +105,7 @@ bool Logger::config(const LogConfig& conf) {
     conf.getUnsigned(TEXT_LOG_FLUSH_NUM, max_flush_num_);
     if (max_flush_num_ < 1) {
         max_flush_num_ = 1;
-        LOG_TO_STDERR("reset num_logs_to_flush from 0 to 1");
+        Assert(false, "num_logs_to_flush > 0");
     }
     LOG_TO_STDERR("num_logs_to_flush: %lu", max_flush_num_);
 
@@ -98,11 +113,57 @@ bool Logger::config(const LogConfig& conf) {
     return configImpl(conf);
 }
 
-bool Logger::log(const std::string& msg, ENUM_LOG_LEVEL level) {
-    if (level >= this->level_)
-        return logImpl(msg);
-    else
+bool Logger::open() {
+    lock_guard<mutex> write_lock(mutex_);
+
+    if (OPENED == status_) {
+        Assert(false, "The logger is already opened!");
+        return true;
+    }
+
+    if (!openImpl()) {
         return false;
+    }
+
+    status_ = OPENED;
+    return true;
+}
+
+void Logger::close() {
+    lock_guard<mutex> write_lock(mutex_);
+
+    if (status_ != OPENED) {
+        LOG_TO_STDERR("The logger is already closed!");
+        return;
+    }
+
+    closeImpl();
+    status_ = CLOSED;
+}
+
+bool Logger::log(const std::string& msg, ENUM_LOG_LEVEL level) {
+    lock_guard<mutex> write_lock(mutex_);
+
+    if (status_ != OPENED) {
+        Assert(false, "The logger is NOT ready for logging !!!");
+        return false;
+    }
+
+    if (level < level_) {
+        return false;
+    }
+
+    if (!logImpl(msg, level)) {
+        return false;
+    }
+
+    not_flushed_num_++;
+    if (not_flushed_num_ >= max_flush_num_) {
+        flush();
+        not_flushed_num_ = 0;
+    }
+
+    return true;
 }
 
 ENUM_LOG_LEVEL Logger::getLevel() const {
@@ -110,8 +171,15 @@ ENUM_LOG_LEVEL Logger::getLevel() const {
 }
 
 void Logger::setLevel(ENUM_LOG_LEVEL level) {
-    if(level >= LOG_LEVEL_MAX) {
-        LOG_TO_STDERR("Invalid log level!");
+    lock_guard<mutex> write_lock(mutex_);
+
+    if (OPENED == status_) {
+        Assert(false, "You can't set the logger's level when it is already opened!");
+        return;
+    }
+
+    if (level >= LOG_LEVEL_MAX) {
+        Assert(false, "Invalid log level!");
     }
     else if(level_ != level) {
         level_ = level;
@@ -119,27 +187,25 @@ void Logger::setLevel(ENUM_LOG_LEVEL level) {
     }
 }
 
+unsigned long Logger::getMaxFlushNum() const
+{
+    return max_flush_num_;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // calss FileLogger
 //
 
-FileLogger::FileLogger():   // set the default value
-    is_thread_safe_(true) {
-    setDefault();
+FileLogger::FileLogger() {
+    setDefaultConf();
 }
 
-FileLogger::FileLogger(const string& path,
-        const string& base_name,
-        const string& suffix,
-        ENUM_LOG_LEVEL level,
-        unsigned long flush_num,
-        bool thread_safe):
+FileLogger::FileLogger(const string& path, const string& base_name, const string& suffix, ENUM_LOG_LEVEL level, unsigned long flush_num):
     Logger(level, flush_num),
     file_path_(path),
     file_base_name_(base_name),
-    file_suffix_(suffix),
-    is_thread_safe_(thread_safe) {
+    file_suffix_(suffix) {
 }
 
 FileLogger::~FileLogger() {
@@ -147,26 +213,28 @@ FileLogger::~FileLogger() {
     LOG_TO_STDERR("~FileLogger()");
 }
 
-void FileLogger::setDefault() {
+void FileLogger::setDefaultConf() {
     file_path_ = LOG_DEFAULT_FILE_PATH;
     file_base_name_ = LOG_DEFAULT_FILE_BASENAME;
     file_suffix_ = LOG_DEFAULT_FILE_SUFFIX;
 }
 
 bool FileLogger::configImpl(const LogConfig& conf) {
-    setDefault();
+    setDefaultConf();
     conf.getString(TEXT_LOG_FILE_PATH,      file_path_);
     conf.getString(TEXT_LOG_FILE_BASE_NAME, file_base_name_);
     conf.getString(TEXT_LOG_FILE_SUFFIX,    file_suffix_);
     return true;
 }
 
-bool FileLogger::open() {
-
+bool FileLogger::openImpl() {
+    //
     // create the directory first
+    //
+
     try {
-        if( !boost::filesystem::exists(file_path_) ) {
-            if( boost::filesystem::create_directories(file_path_) ) {
+        if (!boost::filesystem::exists(file_path_)) {
+            if (boost::filesystem::create_directories(file_path_)) {
                 LOG_TO_STDERR("Created log directory <%s>", file_path_.c_str());
             }
             else {
@@ -180,13 +248,15 @@ bool FileLogger::open() {
         return false;
     }
 
-    close();
 
+    //
     // open file for write in append mode
-    ios_base::openmode mode = fstream::out | fstream::app;
-    file_.open( getFullFileName().c_str(), mode );
+    //
 
-    if( !file_.good() ) {
+    ios_base::openmode mode = fstream::out | fstream::app;
+    file_.open(getFullFileName().c_str(), mode);
+
+    if (!file_.good()) {
         LOG_TO_STDERR("Failed to open log file <%s>", getFullFileName().c_str());
         return false;
     }
@@ -196,35 +266,27 @@ bool FileLogger::open() {
     }
 }
 
-bool FileLogger::close() {
-    if( file_.is_open() ) {
-        file_.flush();
+void FileLogger::closeImpl() {
+    if (file_.is_open()) {
         file_.close();
     }
-
-    return true;
 }
 
-bool FileLogger::logImpl(const std::string& msg) {
-    try{
-        if( is_thread_safe_ ) {
-            lock_guard<mutex> write_lock(mutex_);
-            return writeLog(msg);
-        }
-        else {
-            return writeLog(msg);
-        }
-    }
-    catch (std::exception& ex) {
-        LOG_TO_STDERR("Exception: %s", ex.what());
+bool FileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
+    if (!file_.is_open()) {
         return false;
     }
+    file_ << msg;
+    return !file_.bad();
+}
 
-    return true;
+void FileLogger::flush() {
+    if (file_.is_open()) {
+        file_.flush();
+    }
 }
 
 std::string FileLogger::getFullFileName() const {
-
     string full_name;
 
     if( !file_path_.empty() ) {
@@ -246,24 +308,9 @@ std::string FileLogger::getFullFileName() const {
     return full_name;
 }
 
-bool FileLogger::writeLog(const std::string& msg) {
-    if (!file_.is_open())
-        return false;
-
-    file_ << msg;
-
-    Logger::not_flushed_num_++;
-    if (Logger::not_flushed_num_ >= Logger::max_flush_num_) {
-        file_.flush();
-        Logger::not_flushed_num_ = 0;
-    }
-
-    return !file_.bad();
-}
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// calss StdErrLogger
+// class StdErrLogger
 //
 
 StdErrLogger::StdErrLogger():
@@ -278,17 +325,19 @@ bool StdErrLogger::configImpl(const LogConfig& conf) {
     return true;
 }
 
-bool StdErrLogger::open() {
+bool StdErrLogger::openImpl() {
     return true;
 }
 
-bool StdErrLogger::close() {
-    return true;
+void StdErrLogger::closeImpl() {
 }
 
-bool StdErrLogger::logImpl(const std::string& msg) {
+bool StdErrLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
     fprintf(stderr, "%s", msg.c_str());
     return true;
+}
+
+void StdErrLogger::flush() {
 }
 
 
@@ -297,7 +346,7 @@ bool StdErrLogger::logImpl(const std::string& msg) {
 //
 
 RollingFileLogger::RollingFileLogger() {
-    setDefault();
+    setDefaultConf();
 }
 
 RollingFileLogger::~RollingFileLogger() {
@@ -305,45 +354,42 @@ RollingFileLogger::~RollingFileLogger() {
     LOG_TO_STDERR("~RollingFileLogger()");
 }
 
-void RollingFileLogger::setDefault() {
+void RollingFileLogger::setDefaultConf() {
     file_path_ = LOG_DEFAULT_FILE_PATH;
     file_base_name_ = LOG_DEFAULT_FILE_BASENAME;
     file_suffix_ = LOG_DEFAULT_FILE_SUFFIX;
 }
 
 bool RollingFileLogger::configImpl(const LogConfig& conf) {
-    setDefault();
+    setDefaultConf();
     conf.getString(TEXT_LOG_FILE_PATH,      file_path_);
     conf.getString(TEXT_LOG_FILE_BASE_NAME, file_base_name_);
     conf.getString(TEXT_LOG_FILE_SUFFIX,    file_suffix_);
     return true;
 }
 
-bool RollingFileLogger::open() {
-    getCurrentDate( last_created_time_ );
+bool RollingFileLogger::openImpl() {
+    getCurrentDate(last_created_time_);
     string file_name = getFileNameByDate(last_created_time_);
 
-    file_logger_ = boost::shared_ptr<FileLogger>( new FileLogger(file_path_, file_name, file_suffix_, getLevel(), Logger::max_flush_num_, false) );
+    file_logger_ = boost::shared_ptr<FileLogger>(new FileLogger(file_path_, file_name, file_suffix_, getLevel(), getMaxFlushNum()));
     if (NULL == file_logger_) {
-        LOG_TO_STDERR("Creating FileLogger failed! In RollingFileLogger::open()");
+        Assert(false, "Creating FileLogger failed! In RollingFileLogger::open()");
         return false;
     }
 
     return file_logger_->open();
 }
 
-bool RollingFileLogger::close() {
+void RollingFileLogger::closeImpl() {
     if (file_logger_) {
+        file_logger_->close();
         file_logger_.reset();
     }
-
-    return true;
 }
 
-bool RollingFileLogger::logImpl(const std::string& msg) {
+bool RollingFileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
     try {
-        lock_guard<mutex> write_lock(mutex_);
-
         // create a new file when a day passed
         struct tm date_now;
         getCurrentDate(date_now);
@@ -352,7 +398,7 @@ bool RollingFileLogger::logImpl(const std::string& msg) {
         }
 
         if (file_logger_)
-            return file_logger_->logImpl(msg);
+            return file_logger_->log(msg, level);
         else
             return false;
     }
@@ -364,9 +410,12 @@ bool RollingFileLogger::logImpl(const std::string& msg) {
     return true;
 }
 
+void RollingFileLogger::flush() {
+}
+
 void RollingFileLogger::rotateFile() {
-    close();
-    open();
+    closeImpl();
+    openImpl();
 }
 
 void RollingFileLogger::getCurrentDate(struct tm& date) {
