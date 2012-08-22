@@ -25,18 +25,14 @@ const char* get_log_level_txt(ENUM_LOG_LEVEL level) {
 }
 
 bool LOG_SYS_INIT(const string& config_file) {
-	return LogSys::initialize(config_file);
+	return LogSys::getInstance().initialize(config_file);
 }
 
 void LOG_OUT(const string& log, ENUM_LOG_LEVEL level) {
-	if (LogSys::getInstance() != NULL) {
-		LogSys::getInstance()->log(log, level);
-	}
+    LogSys::getInstance().log(log, level);
 }
 
 void LOG_SET_LEVEL(ENUM_LOG_LEVEL level) {
-    if (LogSys::getInstance() != NULL) {
-        LogSys::getInstance()->setLevel(level);
-    }
+    LogSys::getInstance().setLevel(level);
 }
 

@@ -15,23 +15,20 @@
 class LogSys {
 public:
     // static methods:
-    static bool initialize(const std::string& config_file);
-    static boost::shared_ptr<LogSys> getInstance();
+    static LogSys& getInstance();
 
     virtual ~LogSys();
 
+    bool initialize(const std::string& config_file);
+
     void log(const std::string& msg, ENUM_LOG_LEVEL level);
+
     void setLevel(ENUM_LOG_LEVEL level);
 
 private:
-    // static:
-    static boost::shared_ptr<LogSys> s_pLogSys;
+    LogSys();
 
-    // constructor
-    LogSys(const std::string& config_file) throw (std::runtime_error);
-
-    // non-static:
-    LogConfig config_;
+private:
     boost::shared_ptr<Logger> logger_;
 };
 
