@@ -22,8 +22,8 @@ using namespace std;
 extern void print_usage(const char*);
 
 const int DEF_INTERVAL = 1; // in seconds
-const int DEF_LOG_LEVEL = 0; // DEBUG log
-const int DEF_REPEAT_TIMES = 100;
+const int DEF_LOG_LEVEL = 1; // INFO
+const int DEF_REPEAT_TIMES = 10;
 
 
 int main(int argc, char **argv) {
@@ -31,14 +31,17 @@ int main(int argc, char **argv) {
     // get command-line arguments
     //
 
+    bool forceToDebug = false;  // 将 LOG 模块的级别强制设为 DEBUG？
+
     int log_interval = DEF_INTERVAL;
     int log_level = DEF_LOG_LEVEL;
     int log_repeat_times = DEF_REPEAT_TIMES;
 
     int next_option;
-    const char* const short_options = "hi:l:r:";
+    const char* const short_options = "hdi:l:r:";
     const struct option long_options[] = {
         { "help", 0, NULL, 'h' },
+        { "debug", 0, NULL, 'd' },
         { "interal", 0, NULL, 'i' },
         { "log_level", 0, NULL, 'l' },
         { "repeat_times", 0, NULL, 'r' },
@@ -47,6 +50,10 @@ int main(int argc, char **argv) {
 
     while (0 < (next_option = getopt_long(argc, argv, short_options, long_options, NULL))) {
         switch (next_option) {
+            case 'd':
+                forceToDebug = true;
+                break;
+
             case 'i':
                 log_interval = atoi(optarg);
                 break;
@@ -75,6 +82,11 @@ int main(int argc, char **argv) {
     // initilize LOG system
     if (!LOG_SYS_INIT("log_config.conf")) {
         return 1;
+    }
+
+    // reset the log level to DEBUG
+    if (forceToDebug) {
+        LOG_SET_LEVEL(LOG_LEVEL_DEBUG);
     }
 
     LOG_INFO("enter main()");

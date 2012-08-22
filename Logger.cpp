@@ -170,19 +170,15 @@ ENUM_LOG_LEVEL Logger::getLevel() const {
     return level_;
 }
 
-void Logger::setLevel(ENUM_LOG_LEVEL level) {
+void Logger::setLevel(ENUM_LOG_LEVEL new_level) {
     lock_guard<mutex> write_lock(mutex_);
 
-    if (OPENED == status_) {
-        Assert(false, "You can't set the logger's level when it is already opened!");
-        return;
-    }
-
-    if (level >= LOG_LEVEL_MAX) {
+    if (new_level >= LOG_LEVEL_MAX) {
         Assert(false, "Invalid log level!");
     }
-    else if(level_ != level) {
-        level_ = level;
+    else if(level_ != new_level) {
+        level_ = new_level;
+        setLevelImpl(new_level);
         LOG_TO_STDERR("Log level has been reset to: %s", get_log_level_txt(level_));
     }
 }
@@ -411,6 +407,12 @@ bool RollingFileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
 }
 
 void RollingFileLogger::flush() {
+}
+
+void RollingFileLogger::setLevelImpl(ENUM_LOG_LEVEL new_level) {
+    if (file_logger_) {
+        file_logger_->setLevel(new_level);
+    }
 }
 
 void RollingFileLogger::rotateFile() {

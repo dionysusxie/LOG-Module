@@ -35,9 +35,9 @@ public:
     bool open();
     void close();
     bool log(const std::string& msg, ENUM_LOG_LEVEL level);
+    void setLevel(ENUM_LOG_LEVEL new_level);
 
     ENUM_LOG_LEVEL getLevel() const;
-    void setLevel(ENUM_LOG_LEVEL level);
     unsigned long getMaxFlushNum() const;
 
 protected:
@@ -49,6 +49,7 @@ protected:
     virtual bool openImpl() = 0;
     virtual void closeImpl() = 0;
     virtual bool logImpl(const std::string& msg, ENUM_LOG_LEVEL level) = 0;
+    virtual void setLevelImpl(ENUM_LOG_LEVEL new_level) {}
     virtual void flush() = 0;
 
 private:
@@ -136,6 +137,7 @@ protected:
     virtual bool openImpl();
     virtual void closeImpl();
     virtual bool logImpl(const std::string& msg, ENUM_LOG_LEVEL level);
+    virtual void setLevelImpl(ENUM_LOG_LEVEL new_level);
     virtual void flush();
 
 private:
