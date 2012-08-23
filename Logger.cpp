@@ -14,6 +14,27 @@ using namespace std;
 using namespace boost;
 
 
+//
+// helper functions:
+//
+
+static string getCurrentTimeStr() {
+    time_t now;
+    char dbgtime[26] ;
+    time(&now);
+    ctime_r(&now, dbgtime);
+    dbgtime[24] = '\0';
+    return dbgtime;
+}
+
+static string generateFinalLog(const std::string& msg, ENUM_LOG_LEVEL level) {
+    ostringstream out;
+    out << "[" << getCurrentTimeStr() << "] " << get_log_level_txt(level) << " " << msg << "\n";
+    return out.str();
+}
+// helper end.
+
+
 boost::shared_ptr<Logger> Logger::createLoggerInterface(ENUM_LOG_TYPE type) throw (runtime_error) {
     switch(type) {
     case TO_STDERR:
@@ -272,7 +293,8 @@ bool FileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
     if (!file_.is_open()) {
         return false;
     }
-    file_ << msg;
+
+    file_ << generateFinalLog(msg, level);
     return !file_.bad();
 }
 
@@ -329,7 +351,7 @@ void StdErrLogger::closeImpl() {
 }
 
 bool StdErrLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
-    fprintf(stderr, "%s", msg.c_str());
+    fprintf(stderr, "%s", generateFinalLog(msg, level).c_str());
     return true;
 }
 
