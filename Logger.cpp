@@ -368,7 +368,7 @@ bool RollingFileLogger::openImpl() {
     getCurrentDate(last_created_time_);
     string file_name = getFileNameByDate(last_created_time_);
 
-    file_logger_ = boost::shared_ptr<FileLogger>(new FileLogger(file_path_, file_name, file_suffix_, getLevel(), getMaxFlushNum()));
+    file_logger_ = boost::shared_ptr<Logger>(new FileLogger(file_path_, file_name, file_suffix_, getLevel(), getMaxFlushNum()));
     if (NULL == file_logger_) {
         Assert(false, "Creating FileLogger failed! In RollingFileLogger::open()");
         return false;

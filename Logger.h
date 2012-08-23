@@ -157,7 +157,7 @@ private:
     std::string file_suffix_;
 
     // Rolling file logger uses a "file logger" to write log
-    boost::shared_ptr<FileLogger> file_logger_;
+    boost::shared_ptr<Logger> file_logger_;
 
     struct tm last_created_time_;
 };
