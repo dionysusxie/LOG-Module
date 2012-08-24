@@ -5,13 +5,13 @@
  *      Author: xieliang
  */
 
-//#include <pthread.h>
 #include <boost/filesystem.hpp>
 #include "Logger.h"
 
 
 using namespace std;
 using namespace boost;
+using namespace boost::filesystem;
 
 
 //

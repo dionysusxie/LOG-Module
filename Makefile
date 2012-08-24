@@ -10,6 +10,8 @@ LIB_A_PATH  = $(OUT_DIR)/$(LIB_A_NAME)
 CPP_FILES = log.cpp log_config.cpp LogSys.cpp Logger.cpp
 
 CXXFLAGS = -Wall -g
+CXXFLAGS += -D BOOST_FILESYSTEM_VERSION=3 
+CXXFLAGS += -D BOOST_FILESYSTEM_NO_DEPRECATED
 
 LIB_DIR = /usr/local/lib
 
