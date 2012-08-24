@@ -18,7 +18,7 @@ using namespace boost::filesystem;
 // helper functions:
 //
 
-static string getCurrentTimeStr() {
+static string get_current_time_str() {
     time_t now;
     char dbgtime[26] ;
     time(&now);
@@ -27,11 +27,70 @@ static string getCurrentTimeStr() {
     return dbgtime;
 }
 
-static string generateFinalLog(const std::string& msg, ENUM_LOG_LEVEL level) {
+static string generate_final_log(const std::string& msg, ENUM_LOG_LEVEL level) {
     ostringstream out;
-    out << "[" << getCurrentTimeStr() << "] " << get_log_level_txt(level) << " " << msg << "\n";
+    out << "[" << get_current_time_str() << "] " << get_log_level_txt(level) << " " << msg << "\n";
     return out.str();
 }
+
+static bool the_same_day(const struct tm& day1, const struct tm& day2) {
+    return day1.tm_year == day2.tm_year &&
+           day1.tm_mon == day2.tm_mon &&
+           day1.tm_mday == day2.tm_mday;
+}
+
+static string get_file_name(const string& base_name, const string& suffix) {
+    string file_name(base_name);
+
+    if (!suffix.empty()) {
+        if ('.' == suffix[0])
+            file_name += suffix;
+        else
+            file_name += "." + suffix;
+    }
+
+    return file_name;
+}
+
+static string get_file_full_name(const string& path, const string& file_name) {
+    string full_name;
+
+    if (!path.empty()) {
+        full_name += path;
+
+        if (path[path.size() - 1] != '/') {
+            full_name += "/";
+        }
+    }
+
+    full_name.append(file_name);
+
+    return full_name;
+}
+
+// return something like: 2012-08-23
+static string get_formatted_date_desc(const struct tm& date) {
+    ostringstream oss;
+    oss << date.tm_year + 1900 << '-'
+            << setw(2) << setfill('0') << date.tm_mon + 1 << '-'
+            << setw(2) << setfill('0') << date.tm_mday;
+    return oss.str();
+}
+
+static void rename_file_with_timestamp(const std::string& src_file_path, const struct tm& date) {
+    string file_name_with_date = src_file_path + "." + get_formatted_date_desc(date);
+
+    int i = 0;
+    while (exists(file_name_with_date)) {
+        ostringstream oss;
+        oss << ++i;
+        file_name_with_date = src_file_path + "." + get_formatted_date_desc(date) + "-" + oss.str();
+    }
+
+    rename(src_file_path, file_name_with_date);
+    LOG_TO_STDERR("rename <%s> to <%s>", src_file_path.c_str(), file_name_with_date.c_str());
+}
+
 // helper end.
 
 
@@ -210,7 +269,7 @@ unsigned long Logger::getMaxFlushNum() const
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // calss FileLogger
 //
 
@@ -294,7 +353,7 @@ bool FileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
         return false;
     }
 
-    file_ << generateFinalLog(msg, level);
+    file_ << generate_final_log(msg, level);
     return !file_.bad();
 }
 
@@ -305,29 +364,11 @@ void FileLogger::flush() {
 }
 
 std::string FileLogger::getFullFileName() const {
-    string full_name;
-
-    if( !file_path_.empty() ) {
-        full_name += file_path_;
-
-        if( file_path_[ file_path_.size() - 1 ] != '/' )
-            full_name += "/";
-    }
-
-    full_name += file_base_name_;
-
-    if( !file_suffix_.empty() ) {
-        if( file_suffix_[0] == '.' )
-            full_name += file_suffix_;
-        else
-            full_name = full_name + "." + file_suffix_;
-    }
-
-    return full_name;
+    return get_file_full_name(file_path_, get_file_name(file_base_name_, file_suffix_));
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // class StdErrLogger
 //
 
@@ -351,7 +392,7 @@ void StdErrLogger::closeImpl() {
 }
 
 bool StdErrLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
-    fprintf(stderr, "%s", generateFinalLog(msg, level).c_str());
+    fprintf(stderr, "%s", generate_final_log(msg, level).c_str());
     return true;
 }
 
@@ -359,7 +400,7 @@ void StdErrLogger::flush() {
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // calss RollingFileLogger
 //
 
@@ -388,9 +429,8 @@ bool RollingFileLogger::configImpl(const LogConfig& conf) {
 
 bool RollingFileLogger::openImpl() {
     getCurrentDate(last_created_time_);
-    string file_name = getFileNameByDate(last_created_time_);
 
-    file_logger_ = boost::shared_ptr<Logger>(new FileLogger(file_path_, file_name, file_suffix_, getLevel(), getMaxFlushNum()));
+    file_logger_ = boost::shared_ptr<Logger>(new FileLogger(file_path_, file_base_name_, file_suffix_, getLevel(), getMaxFlushNum()));
     if (NULL == file_logger_) {
         Assert(false, "Creating FileLogger failed! In RollingFileLogger::open()");
         return false;
@@ -404,6 +444,9 @@ void RollingFileLogger::closeImpl() {
         file_logger_->close();
         file_logger_.reset();
     }
+
+    const string cur_file_name = get_file_full_name(file_path_, get_file_name(file_base_name_, file_suffix_));
+    rename_file_with_timestamp(cur_file_name, last_created_time_);
 }
 
 bool RollingFileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
@@ -411,8 +454,9 @@ bool RollingFileLogger::logImpl(const std::string& msg, ENUM_LOG_LEVEL level) {
         // create a new file when a day passed
         struct tm date_now;
         getCurrentDate(date_now);
-        if (last_created_time_.tm_mday != date_now.tm_mday) {
-            rotateFile();
+
+        if (!the_same_day(date_now, last_created_time_)) {
+            rotateFile(last_created_time_, date_now);
         }
 
         if (file_logger_)
@@ -437,8 +481,24 @@ void RollingFileLogger::setLevelImpl(ENUM_LOG_LEVEL new_level) {
     }
 }
 
-void RollingFileLogger::rotateFile() {
-    closeImpl();
+void RollingFileLogger::rotateFile(const struct tm& old_date, const struct tm& new_date) {
+    // close the current file
+    file_logger_->close();
+    file_logger_.reset();
+
+    //
+    // rename the current file to something like: test.log.2012-08-23
+    // or test.log.2012-08-23-1 if test.log.2012-08-23 already exists
+    //
+
+    const string cur_file_name = get_file_full_name(file_path_, get_file_name(file_base_name_, file_suffix_));
+    rename_file_with_timestamp(cur_file_name, old_date);
+
+
+    //
+    // open a new file for logging
+    //
+
     openImpl();
 }
 

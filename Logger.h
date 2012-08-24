@@ -146,7 +146,7 @@ private:
     const RollingFileLogger& operator=(const RollingFileLogger& rhs);
 
 private:
-    void rotateFile();
+    void rotateFile(const struct tm& old_date, const struct tm& new_date);
     void getCurrentDate(struct tm& date);
     void setDefaultConf();
     std::string getFileNameByDate(const struct tm& date);
