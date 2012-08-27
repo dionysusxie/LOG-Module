@@ -43,10 +43,13 @@ enum ENUM_LOG_LEVEL {
 // used only inside this file !!!
 #define LOG_IMPL(level, format_string, ...)									\
 {																			\
+    std::string format("%s");                                               \
+    format.append(format_string);                                           \
+                                                                            \
     const size_t max_log_text_len = 4096;                                   \
     char str_log[max_log_text_len + 1];			    					    \
                                                                             \
-    const int n = snprintf(str_log, sizeof(str_log), format_string, ##__VA_ARGS__);\
+    const int n = snprintf(str_log, sizeof(str_log), format.c_str(), "", ##__VA_ARGS__);\
     																		\
 	if(n >= 0) {															\
 		if( (unsigned int)(n) < sizeof(str_log) ) {							\
@@ -54,7 +57,7 @@ enum ENUM_LOG_LEVEL {
 		}																	\
 		else {																\
 			std::string msg(n+1, '\0'); 									\
-			snprintf(&msg[0], n+1, format_string, ##__VA_ARGS__);           \
+			snprintf(&msg[0], n+1, format.c_str(), "", ##__VA_ARGS__);      \
 			LOG_OUT(msg.c_str(), level);									\
 		} 																	\
 	}																		\
