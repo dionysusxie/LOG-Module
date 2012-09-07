@@ -16,13 +16,11 @@ EXTERNAL_INCLUDED_HEAD_FILE = allyes-log.h
 CPP_FILES = log.cpp log_config.cpp LogSys.cpp Logger.cpp
 
 CXXFLAGS = -Wall -g
-CXXFLAGS += -D BOOST_FILESYSTEM_VERSION=3 
-CXXFLAGS += -D BOOST_FILESYSTEM_NO_DEPRECATED
 
 LIB_DIR = /usr/local/lib
 
 LDFLAGS = -L$(LIB_DIR) 
-LDFLAGS += -lboost_thread -lboost_filesystem
+LDFLAGS += -lboost_filesystem
 
 CC = g++
 
