@@ -11,7 +11,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 
-#include "log.h"
+#include "allyes-log.h"
 #include "log_config.h"
 #include "common.h"
 

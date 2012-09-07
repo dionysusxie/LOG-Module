@@ -6,7 +6,7 @@
  */
 
 #include "LogSys.h"
-#include "log.h"
+#include "allyes-log.h"
 #include "common.h"
 
 

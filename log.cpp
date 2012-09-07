@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 #include <map>
-#include "log.h"
+#include "allyes-log.h"
 #include "LogSys.h"
 
 

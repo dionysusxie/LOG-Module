@@ -4,7 +4,7 @@
 #include <string>
 #include <assert.h>
 #include <iostream>
-#include "log.h"
+#include "allyes-log.h"
 
 
 enum ENUM_LOG_TYPE {
