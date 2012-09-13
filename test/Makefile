@@ -1,18 +1,15 @@
 TARGET = testApp
 
-LOG_MODEL_DIR = ../output
-
 OBJ_FILES = test.o
 
 CXXFLAGS = -Wall -g -c
-CXXFLAGS += -I$(LOG_MODEL_DIR)
 
 LIB_DIR = /usr/local/lib
 
 LDFLAGS = -L$(LIB_DIR)
-LDFLAGS += -lboost_thread -lboost_filesystem -lboost_system
+LDFLAGS += -lboost_thread -lboost_filesystem -lboost_system -lallyes-log
 
-STATIC_ARCHIVES = $(LOG_MODEL_DIR)/liballyes-log.a
+STATIC_ARCHIVES = 
 
 CC = g++
 

@@ -12,8 +12,7 @@
 #include <getopt.h>
 #include <cassert>
 #include <iostream>
-
-#include "../output/log.h"
+#include <allyes-log.h>
 
 
 using namespace std;
@@ -140,10 +139,11 @@ int main(int argc, char **argv) {
 
 
 void print_usage(const char* program_name) {
-    cout << "Usage: " << program_name << " [-h] [-i interval(seconds)] [-l log_level] [-r repeat_times]" << endl;
+    cout << "Usage: " << program_name << " [-h] [-d] [-i interval(seconds)] [-l log_level] [-r repeat_times]" << endl;
     cout << "Default values: -i " << DEF_INTERVAL << " -l " << DEF_LOG_LEVEL << " -r " << DEF_REPEAT_TIMES << endl;
     cout << "Means: a log with " << get_log_level_txt(ENUM_LOG_LEVEL(DEF_LOG_LEVEL))
             << " level will be logged every " << DEF_INTERVAL << " seconds for "
             << DEF_REPEAT_TIMES << " times" << endl;
+    cout << "Note: -d means change the log level to DEBUG" << endl;
     cout << "Note: -r 0 means LOG forever!" << endl;
 }
