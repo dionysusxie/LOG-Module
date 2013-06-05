@@ -10,15 +10,19 @@
 //
 // #1
 // LOG_DEBUG(format_string,...)
+// LOG_DEBUG_CTX(context, format_string, ...)
 //
 // #2
 // LOG_INFO(format_string,...)
+// LOG_INFO_CTX(context, format_string, ...)
 //
 // #3
 // LOG_WARNING(format_string,...)
+// LOG_WARNING_CTX(context, format_string, ...)
 //
 // #4
 // LOG_ERROR(format_string,...)
+// LOG_ERROR_CTX(context, format_string, ...)
 //
 // #5
 // void LOG_SET_LEVEL(ENUM_LOG_LEVEL level);
