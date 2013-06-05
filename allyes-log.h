@@ -93,6 +93,37 @@ bool LOG_SYS_INIT(const std::string& log_config_file);
 // interface #5
 void LOG_SET_LEVEL(ENUM_LOG_LEVEL level);
 
+
+// log with context
+
+#define LOG_DEBUG_CTX(context, format_string, ...)\
+{\
+    std::string final_str;\
+    final_str.append("[").append(context).append("] ").append(format_string);\
+    LOG_DEBUG(final_str, ##__VA_ARGS__);\
+}
+
+#define LOG_INFO_CTX(context, format_string, ...)\
+{\
+    std::string final_str;\
+    final_str.append("[").append(context).append("] ").append(format_string);\
+    LOG_INFO(final_str, ##__VA_ARGS__);\
+}
+
+#define LOG_WARNING_CTX(context, format_string, ...)\
+{\
+    std::string final_str;\
+    final_str.append("[").append(context).append("] ").append(format_string);\
+    LOG_WARNING(final_str, ##__VA_ARGS__);\
+}
+#define LOG_ERROR_CTX(context, format_string, ...)\
+{\
+    std::string final_str;\
+    final_str.append("[").append(context).append("] ").append(format_string);\
+    LOG_ERROR(final_str, ##__VA_ARGS__);\
+}
+
+
 void LOG_OUT(const std::string& log, ENUM_LOG_LEVEL level);
 const char* get_log_level_txt(ENUM_LOG_LEVEL);
 

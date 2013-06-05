@@ -12,7 +12,7 @@
 #include <getopt.h>
 #include <cassert>
 #include <iostream>
-#include <allyes-log.h>
+#include "../output/allyes-log.h"
 
 
 using namespace std;
@@ -93,6 +93,13 @@ int main(int argc, char **argv) {
     // seed random number generation with something reasonably unique
     srand(time(NULL) ^ getpid());
 
+    // LOG_XXX_CTX:
+    {
+        LOG_DEBUG_CTX("test", "xxx");
+        LOG_INFO_CTX("test", "xxx");
+        LOG_WARNING_CTX("test", "xxx");
+        LOG_ERROR_CTX("test", "xxx");
+    }
 
     //
     // the loop
